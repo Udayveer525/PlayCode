@@ -1,9 +1,34 @@
 import React from 'react';
+import { javascriptGenerator } from 'blockly/javascript';
+
 
 export const ControlPanel = ({ isRunning, onRun, onStop, challengeId }) => {
   const handleRunClick = () => {
-    // For now, just call with empty commands to test
-    onRun([]);
+    // Access the globally stored workspace
+    const workspace = window.blocklyWorkspace;
+    
+    if (workspace) {
+      try {
+        // Generate code from workspace
+        const code = javascriptGenerator.workspaceToCode(workspace);
+        
+        // Parse commands
+        if (code.trim()) {
+          const cleanCode = code.replace(/,\s*$/, '');
+          const commandsArray = eval(`[${cleanCode}]`);
+          console.log('🎮 Running commands:', commandsArray);
+          onRun(commandsArray);
+        } else {
+          onRun([]);
+        }
+      } catch (error) {
+        console.error('Error generating code:', error);
+        onRun([]);
+      }
+    } else {
+      console.log('📋 No workspace found');
+      onRun([]);
+    }
   };
 
   return (

@@ -13,7 +13,7 @@ export const Editor = ({ challengeId, onBackToHome }) => {
   
   const currentChallenge = challengeData.challenges.find(c => c.id === challengeId);
 
-  // Initialize robot state based on challenge
+  // Initialize robot state
   useEffect(() => {
     if (currentChallenge) {
       setRobotState({
@@ -26,6 +26,14 @@ export const Editor = ({ challengeId, onBackToHome }) => {
   }, [currentChallenge]);
 
   const handleRunCode = (blocklyCommands) => {
+    console.log('📋 Commands to execute:', blocklyCommands);
+    
+    if (!blocklyCommands || blocklyCommands.length === 0) {
+      alert("🤖 Add some blocks first to make the robot move!");
+      return;
+    }
+    
+    // STORE COMMANDS AND START EXECUTION
     setCommands(blocklyCommands);
     setIsRunning(true);
     setChallengeStatus('running');
@@ -34,17 +42,23 @@ export const Editor = ({ challengeId, onBackToHome }) => {
   const handleStopExecution = () => {
     setIsRunning(false);
     setChallengeStatus('waiting');
-    setRobotState({
-      row: currentChallenge.start.r,
-      col: currentChallenge.start.c,
-      direction: currentChallenge.start.dir,
-      stepCount: 0
-    });
+    setCommands([]); // CLEAR COMMANDS
+    
+    // Reset robot to start position
+    if (currentChallenge) {
+      setRobotState({
+        row: currentChallenge.start.r,
+        col: currentChallenge.start.c,
+        direction: currentChallenge.start.dir,
+        stepCount: 0
+      });
+    }
   };
 
   const handleExecutionComplete = (success) => {
     setIsRunning(false);
     setChallengeStatus(success ? 'success' : 'failed');
+    setCommands([]); // CLEAR COMMANDS AFTER EXECUTION
   };
 
   return (
@@ -55,63 +69,62 @@ export const Editor = ({ challengeId, onBackToHome }) => {
       fontFamily: "'Comic Sans MS', cursive, sans-serif",
       overflow: 'hidden',
       display: 'grid',
-      gridTemplateColumns: '1fr 2fr 1fr',
-      gap: '10px', // Reduced from 15px
-      padding: '10px', // Reduced from 15px
+      gridTemplateColumns: '2fr 2fr 1fr',
+      gap: '10px',
+      padding: '10px',
       boxSizing: 'border-box'
     }}>
       
-      {/* Left Panel - Blockly */}
+      {/* Left Panel */}
       <div style={{
         background: 'rgba(255, 255, 255, 0.95)',
         borderRadius: '20px',
-        padding: '15px', // Reduced from 20px
+        padding: '12px',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         border: '3px solid #74b9ff',
         overflow: 'hidden',
         position: 'relative',
-        height: 'calc(100vh - 20px)' // Ensure exact height
+        height: 'calc(100vh - 20px)'
       }}>
         <button 
           onClick={onBackToHome}
           style={{
             position: 'absolute',
             top: '8px',
-            right: '8px',
+            left: '8px',
             background: '#4ecdc4',
             color: 'white',
             border: 'none',
-            padding: '6px 10px',
-            borderRadius: '12px',
-            fontSize: '11px',
+            padding: '4px 8px',
+            borderRadius: '10px',
+            fontSize: '10px',
             fontWeight: 'bold',
             cursor: 'pointer',
-            zIndex: 10,
-            boxShadow: '0 2px 10px rgba(78, 205, 196, 0.3)'
+            zIndex: 10
           }}
         >
-          🏠
+          🏠 Home
         </button>
         
         <BlocklyPanel 
           challengeId={challengeId}
           allowedBlocks={currentChallenge?.allowedBlocks}
-          onCodeGenerated={handleRunCode}
+          onCodeGenerated={() => {}} // Don't auto-execute
           isDisabled={isRunning}
         />
       </div>
 
-      {/* Center - Canvas */}
+      {/* Center */}
       <div style={{
         background: 'rgba(255, 255, 255, 0.98)',
         borderRadius: '20px',
-        padding: '15px', // Reduced from 20px
+        padding: '15px',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         border: '3px solid #fdcb6e',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        height: 'calc(100vh - 20px)' // Ensure exact height
+        height: 'calc(100vh - 20px)'
       }}>
         <CanvasWrapper 
           challenge={currentChallenge}
@@ -123,12 +136,12 @@ export const Editor = ({ challengeId, onBackToHome }) => {
         />
       </div>
 
-      {/* Right Panel - Controls & Challenge */}
+      {/* Right Panel */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px', // Reduced from 15px
-        height: 'calc(100vh - 20px)' // Ensure exact height
+        gap: '10px',
+        height: 'calc(100vh - 20px)'
       }}>
         <ControlPanel 
           isRunning={isRunning}
