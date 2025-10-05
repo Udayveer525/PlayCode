@@ -3,11 +3,11 @@
     {
       "id": "c1_reach_treasure",
       "title": "Reach the Treasure!",
-      "description": "Help the robot reach the golden treasure in 4 steps or less!",
+      "description": "Help the robot reach the golden treasure in 7 steps or less!",
       "grid": { "rows": 5, "cols": 5 },
       "start": { "r": 4, "c": 0, "dir": "up" },
       "goal": { "r": 1, "c": 4 },
-      "maxSteps": 6,
+      "maxSteps": 7,
       "allowedBlocks": ["move", "turn", "repeat"]
     }
   ]
