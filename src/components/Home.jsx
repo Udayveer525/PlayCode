@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { UserProfile } from './UserProfile';
 import roboImage from '../assets/images/robo.png';
 
 export const Home = ({ onStartAdventure, onViewChallenges }) => {
   const [showNameInput, setShowNameInput] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [username, setUsername] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -105,6 +107,7 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
       {/* User badge if logged in */}
       {currentUser && (
         <div
+          onClick={() => setShowProfile(true)}
           style={{
             position: 'absolute',
             top: '20px',
@@ -119,25 +122,29 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
             color: 'white',
             fontSize: '14px',
             fontWeight: 'bold',
+            cursor: 'pointer', // ADD THIS
+            transition: 'all 0.3s ease', // ADD THIS
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.35)';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+            e.currentTarget.style.transform = 'translateY(0)';
           }}
         >
           <span>👤 {currentUser.username}</span>
-          <button
-            onClick={handleLogout}
-            style={{
-              background: 'rgba(255, 255, 255, 0.3)',
-              border: 'none',
-              padding: '5px 12px',
-              borderRadius: '12px',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
-          >
-            Logout
-          </button>
         </div>
       )}
+
+      {/* Profile Modal - ADD THIS */}
+      <UserProfile
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
 
       {/* Name Input Modal */}
       {showNameInput && !currentUser && (
