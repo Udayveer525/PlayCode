@@ -2,7 +2,7 @@ import React from 'react';
 import '../styles/Home.css';
 import roboImage from '../assets/images/robo.png';
 
-export const Home = ({ onStartChallenge }) => {
+export const Home = ({ onStartAdventure, onViewChallenges }) => {
   return (
     <div className="home-container">
       {/* Animated Background Elements */}
@@ -59,12 +59,15 @@ export const Home = ({ onStartChallenge }) => {
         <div className="action-section">
           <button 
             className="start-btn primary-btn"
-            onClick={() => onStartChallenge()}
+            onClick={() => onStartAdventure()}
           >
             Start Adventure!
           </button>
         
-          <button className="demo-btn secondary-btn">
+          <button 
+            className="demo-btn secondary-btn"
+            onClick={() => onViewChallenges()}
+          >
             View Challenges
           </button>
         </div>

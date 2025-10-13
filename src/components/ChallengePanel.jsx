@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const ChallengePanel = ({ challenge, status, stepCount, maxSteps }) => {
+export const ChallengePanel = ({ challenge, status, blocksUsed, maxBlocks }) => {
   const getStatusEmoji = () => {
     switch(status) {
       case 'success': return '🎉';
@@ -69,10 +69,10 @@ export const ChallengePanel = ({ challenge, status, stepCount, maxSteps }) => {
           marginBottom: '6px' // Reduced from 8px
         }}>
           <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#2d3436' }}>
-            Steps: {stepCount} / {maxSteps || 10}
+            Blocks: {blocksUsed || 0} / {maxBlocks} blocks max
           </span>
           <span style={{ fontSize: '11px', color: '#636e72' }}>
-            {maxSteps ? Math.max(0, maxSteps - stepCount) : 10} left
+            {maxBlocks - (blocksUsed || 0)} left
           </span>
         </div>
         
@@ -83,9 +83,9 @@ export const ChallengePanel = ({ challenge, status, stepCount, maxSteps }) => {
           overflow: 'hidden'
         }}>
           <div style={{
-            background: stepCount > (maxSteps || 10) ? '#e74c3c' : '#4ecdc4',
+            background: blocksUsed > (maxBlocks || 10) ? '#e74c3c' : '#4ecdc4',
             height: '100%',
-            width: `${Math.min(100, (stepCount / (maxSteps || 10)) * 100)}%`,
+            width: `${Math.min(100, (blocksUsed / (maxBlocks)) * 100)}%`,
             borderRadius: '8px',
             transition: 'all 0.3s ease'
           }}></div>

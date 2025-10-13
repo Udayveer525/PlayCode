@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { CommandInterpreter } from "../lib/commandInterpreter";
 import robotImage from "../assets/images/roboFace.png";
+import treasureImg from "../assets/images/treasure.png";
+import stoneImg from "../assets/images/stone.png";
 
 export const CanvasWrapper = ({
   challenge,
@@ -16,6 +18,45 @@ export const CanvasWrapper = ({
   const [currentRobotState, setCurrentRobotState] = useState(robotState);
   const isExecuting = useRef(false); // PREVENT MULTIPLE EXECUTIONS
   const robotImg = useRef(null);
+  const treasureImage = useRef(null);
+  const stoneImage = useRef(null);
+
+  // Animation state for interpolated movement
+  const [anim, setAnim] = useState(null);
+
+  // Smoothly animates the robot from (fromRow, fromCol) to (toRow, toCol)
+  const animateMove = (fromRow, fromCol, toRow, toCol, duration = 180) => {
+    return new Promise((resolve) => {
+      const start = performance.now();
+      function step(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        setAnim({ fromRow, fromCol, toRow, toCol, progress });
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          setAnim(null);
+          resolve();
+        }
+      }
+      requestAnimationFrame(step);
+    });
+  };
+
+  useEffect(() => {
+    window.animateCanvasMove = animateMove;
+    return () => {
+      window.animateCanvasMove = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    treasureImage.current = new window.Image();
+    treasureImage.current.src = treasureImg;
+
+    stoneImage.current = new window.Image();
+    stoneImage.current.src = stoneImg;
+  }, []);
 
   // Initialize command interpreter ONCE
   useEffect(() => {
@@ -125,26 +166,71 @@ export const CanvasWrapper = ({
       ctx.stroke();
     }
 
+    // Draw obstacles
+    if (challenge.obstacles && challenge.obstacles.length > 0) {
+      challenge.obstacles.forEach((obstacle) => {
+        const obstX = offsetX + obstacle.c * cellSize;
+        const obstY = offsetY + obstacle.r * cellSize;
+
+        // Draw stone image if loaded
+        if (stoneImage.current && stoneImage.current.complete) {
+          ctx.drawImage(
+            stoneImage.current,
+            obstX + cellSize * 0.05,
+            obstY + cellSize * 0.05,
+            cellSize * 0.9,
+            cellSize * 0.9
+          );
+        } else {
+          // Fallback if image not loaded yet
+          ctx.fillStyle = "#2d3436";
+          ctx.fillRect(obstX + 4, obstY + 4, cellSize - 8, cellSize - 8);
+        }
+      });
+    }
+
     // Draw goal
     if (challenge.goal) {
       const goalX = offsetX + challenge.goal.c * cellSize;
       const goalY = offsetY + challenge.goal.r * cellSize;
 
-      ctx.fillStyle = "#ffd700";
-      ctx.fillRect(goalX + 4, goalY + 4, cellSize - 8, cellSize - 8);
+      // Glow/background box for visibility (optional)
+      ctx.save();
+      ctx.shadowColor = "#ffd700";
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = "#fffbe644";
+      ctx.fillRect(
+        goalX + cellSize * 0.1,
+        goalY + cellSize * 0.1,
+        cellSize * 0.8,
+        cellSize * 0.8
+      );
+      ctx.restore();
 
-      ctx.font = `${cellSize * 0.5}px Arial`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "#2d3436";
-      ctx.fillText("💎", goalX + cellSize / 2, goalY + cellSize / 2);
+      // Draw the treasure image
+      if (treasureImage.current && treasureImage.current.complete) {
+        ctx.drawImage(
+          treasureImage.current,
+          goalX + cellSize * 0.1,
+          goalY + cellSize * 0.1,
+          cellSize * 0.8,
+          cellSize * 0.8
+        );
+      }
     }
 
     // Draw robot
     // FIXED: Draw robot with proper rotation
     if (currentRobotState && robotImg.current && robotImg.current.complete) {
-      const robotX = offsetX + currentRobotState.col * cellSize;
-      const robotY = offsetY + currentRobotState.row * cellSize;
+      let drawRow = currentRobotState.row;
+      let drawCol = currentRobotState.col;
+      if (anim) {
+        drawRow = anim.fromRow + (anim.toRow - anim.fromRow) * anim.progress;
+        drawCol = anim.fromCol + (anim.toCol - anim.fromCol) * anim.progress;
+      }
+      const robotX = offsetX + drawCol * cellSize;
+      const robotY = offsetY + drawRow * cellSize;
+
       const robotSize = cellSize * 0.8;
 
       // Save the current context
@@ -182,6 +268,10 @@ export const CanvasWrapper = ({
 
       // Restore the context
       ctx.restore();
+
+      if (anim) {
+        requestAnimationFrame(drawGrid);
+      }
     }
   };
 
@@ -252,10 +342,23 @@ export const CanvasWrapper = ({
             height: "30px",
             width: "30px",
             verticalAlign: "middle",
-            marginRight: "8px",
+            marginBottom: "6px",
+            marginRight: "6px",
           }}
         />
-        Robot • 💎 Treasure • {isRunning ? "⚡ Executing!" : "⭐ Ready!"}
+        Robot •{" "}
+        <img
+          src={treasureImg}
+          alt="Treasure icon"
+          style={{
+            height: "30px",
+            width: "30px",
+            verticalAlign: "middle",
+            marginBottom: "6px",
+            marginRight: "6px",
+          }}
+        />
+        Treasure • {isRunning ? "⚡ Executing!" : "⭐ Ready!"}
       </div>
     </div>
   );

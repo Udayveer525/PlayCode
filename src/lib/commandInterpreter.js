@@ -66,10 +66,8 @@ export class CommandInterpreter {
       if (!this.isRunning) break;
 
       const { row, col, direction } = this.robotState;
-      let newRow = row;
-      let newCol = col;
-
-      // Calculate new position based on direction
+      let newRow = row,
+        newCol = col;
       switch (direction) {
         case "up":
           newRow = row - 1;
@@ -85,20 +83,18 @@ export class CommandInterpreter {
           break;
       }
 
-      // Check boundaries
       if (this.isValidPosition(newRow, newCol)) {
+        // Start animation, then set new state
+        await window.animateCanvasMove(row, col, newRow, newCol);
         this.robotState.row = newRow;
         this.robotState.col = newCol;
         this.robotState.stepCount++;
-
-        console.log(`🤖 Robot moved to (${newRow}, ${newCol})`);
         this.onStateChange({ ...this.robotState });
-        await this.delay(400);
       } else {
-        console.log("🚫 Hit wall - execution failed");
         this.onExecutionComplete(false);
         return;
       }
+      await this.delay(50); // Small pause between steps
     }
   }
 
@@ -132,12 +128,27 @@ export class CommandInterpreter {
   isValidPosition(row, col) {
     if (!this.challenge || !this.challenge.grid) return true;
 
-    return (
+    // Check grid boundaries
+    const inBounds =
       row >= 0 &&
       row < this.challenge.grid.rows &&
       col >= 0 &&
-      col < this.challenge.grid.cols
-    );
+      col < this.challenge.grid.cols;
+
+    if (!inBounds) return false;
+
+    // Check if position has an obstacle
+    if (this.challenge.obstacles && this.challenge.obstacles.length > 0) {
+      const hasObstacle = this.challenge.obstacles.some(
+        (obs) => obs.r === row && obs.c === col
+      );
+      if (hasObstacle) {
+        console.log(`🚫 Obstacle at (${row}, ${col})!`);
+        return false;
+      }
+    }
+
+    return true;
   }
 
   checkWinCondition() {

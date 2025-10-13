@@ -18,6 +18,7 @@ export const Editor = ({ challengeId, onBackToHome }) => {
 
   const [isRunning, setIsRunning] = useState(false);
   const [commands, setCommands] = useState([]);
+  const [blocksUsed, setBlocksUsed] = useState(0);
   const [robotState, setRobotState] = useState(null);
   const [challengeStatus, setChallengeStatus] = useState("waiting");
 
@@ -52,8 +53,28 @@ export const Editor = ({ challengeId, onBackToHome }) => {
       return;
     }
 
-    // STORE COMMANDS AND START EXECUTION
+    // Count blocks used
+    const blocksUsed = window.countBlocklyBlocks
+      ? window.countBlocklyBlocks()
+      : 0;
+    console.log(
+      `🔢 Blocks used: ${blocksUsed} / ${currentChallenge.maxBlocks}`
+    );
+
+    // Check if within block limit
+    if (blocksUsed > currentChallenge.maxBlocks) {
+      setModalState({
+        isOpen: true,
+        type: "info",
+        title: "Too Many Blocks!",
+        message: `🚫 You used ${blocksUsed} blocks, but the limit is ${currentChallenge.maxBlocks}! Try using the repeat block to make your code shorter.`,
+        actionText: "Try Again",
+      });
+      return;
+    }
+
     setCommands(blocklyCommands);
+    setBlocksUsed(blocksUsed); // Store for display
     setIsRunning(true);
     setChallengeStatus("running");
   };
@@ -78,6 +99,16 @@ export const Editor = ({ challengeId, onBackToHome }) => {
     setIsRunning(false);
     setChallengeStatus(success ? "success" : "failed");
     setCommands([]); // CLEAR COMMANDS AFTER EXECUTION
+
+    // Save completed challenge to localStorage
+    if (success) {
+      const saved = localStorage.getItem("completedChallenges");
+      const completed = saved ? JSON.parse(saved) : [];
+      if (!completed.includes(challengeId)) {
+        completed.push(challengeId);
+        localStorage.setItem("completedChallenges", JSON.stringify(completed));
+      }
+    }
 
     if (success) {
       setModalState({
@@ -236,20 +267,20 @@ export const Editor = ({ challengeId, onBackToHome }) => {
         <ChallengePanel
           challenge={currentChallenge}
           status={challengeStatus}
-          stepCount={robotState?.stepCount || 0}
-          maxSteps={currentChallenge?.maxSteps}
+          blocksUsed={blocksUsed}
+          maxBlocks={currentChallenge?.maxBlocks}
         />
       </div>
 
       <GameModal
-      isOpen={modalState.isOpen}
-      type={modalState.type}
-      title={modalState.title}
-      message={modalState.message}
-      actionText={modalState.actionText}
-      onAction={handleModalAction}
-      onClose={handleModalClose}
-    />
+        isOpen={modalState.isOpen}
+        type={modalState.type}
+        title={modalState.title}
+        message={modalState.message}
+        actionText={modalState.actionText}
+        onAction={handleModalAction}
+        onClose={handleModalClose}
+      />
     </div>
   );
 };

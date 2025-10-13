@@ -248,7 +248,7 @@ export const GameModal = ({
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes modalBounceIn {
           0% { transform: scale(0.3) translateY(-50px); opacity: 0; }
           50% { transform: scale(1.1); }

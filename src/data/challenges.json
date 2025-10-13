@@ -3,13 +3,54 @@
     {
       "id": "c1_reach_treasure",
       "title": "Reach the Treasure!",
-      "description": "Help the robot reach the golden treasure in 7 steps or less!",
+      "description": "Help the robot reach the golden treasure! Watch out for obstacles!",
+      "difficulty": "easy",
+      "grid": { "rows": 4, "cols": 4 },
+      "start": { "r": 3, "c": 1, "dir": "up" },
+      "goal": { "r": 0, "c": 1 },
+      "obstacles": [
+        { "r": 1, "c": 0 },
+        { "r": 2, "c": 2 }
+      ],
+      "maxBlocks": 3,
+      "allowedBlocks": ["move", "turn_right", "repeat"]
+    },
+    {
+      "id": "c2_zigzag_maze",
+      "title": "Zigzag Maze",
+      "description": "Navigate through the maze! The straight path is blocked!",
+      "difficulty": "medium",
+      "grid": { "rows": 5, "cols": 5 },
+      "start": { "r": 4, "c": 0, "dir": "right" },
+      "goal": { "r": 0, "c": 4 },
+      "obstacles": [
+        { "r": 4, "c": 1 },
+        { "r": 4, "c": 2 },
+        { "r": 3, "c": 2 },
+        { "r": 2, "c": 2 },
+        { "r": 2, "c": 3 },
+        { "r": 1, "c": 3 }
+      ],
+      "maxBlocks": 8,
+      "allowedBlocks": ["move", "turn_right", "turn_left", "repeat"]
+    },
+    {
+      "id": "c3_loop_master",
+      "title": "Loop Master Challenge",
+      "description": "A perfect square path! Use loops to solve it efficiently!",
+      "difficulty": "hard",
       "grid": { "rows": 5, "cols": 5 },
       "start": { "r": 4, "c": 0, "dir": "up" },
-      "goal": { "r": 1, "c": 4 },
-      "maxSteps": 7,
-      "allowedBlocks": ["move", "turn", "repeat"]
+      "goal": { "r": 0, "c": 4 },
+      "obstacles": [
+        { "r": 1, "c": 0 },
+        { "r": 0, "c": 2 },
+        { "r": 2, "c": 1 },
+        { "r": 4, "c": 2 },
+        { "r": 2, "c": 4 }
+      ],
+      "maxBlocks": 5,
+      "allowedBlocks": ["move", "turn_right", "turn_left", "repeat"]
     }
   ]
 }
-
