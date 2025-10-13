@@ -3,12 +3,17 @@ export class CommandInterpreter {
     this.onStateChange = onStateChange;
     this.onExecutionComplete = onExecutionComplete;
     this.isRunning = false;
-    this.robotState = null;
+    this.snakeState = null;
     this.challenge = null;
+    this.collectedStars = [];
   }
 
-  setRobotState(state) {
-    this.robotState = { ...state };
+  setSnakeState(state) {
+    this.snakeState = {
+      ...state,
+      body: state.body || [],
+    };
+    this.collectedStars = state.collectedStars || [];
   }
 
   setChallenge(challenge) {
@@ -21,7 +26,7 @@ export class CommandInterpreter {
       return;
     }
 
-    console.log("🤖 Starting execution with commands:", commands);
+    console.log("🐍 Starting execution with commands:", commands);
     this.isRunning = true;
 
     try {
@@ -38,26 +43,28 @@ export class CommandInterpreter {
   async processCommands(commands) {
     for (const command of commands) {
       if (!this.isRunning) break;
-
       console.log("🔄 Executing command:", command);
       await this.executeCommand(command);
-      await this.delay(600); // Animation delay
+      await this.delay(300);
     }
   }
 
   async executeCommand(command) {
-    switch (command.cmd) {
-      case "move":
-        await this.moveForward(command.value || 1);
-        break;
-      case "turn":
-        await this.turn(command.dir || "right");
-        break;
-      case "repeat":
-        await this.repeatCommands(command.times || 1, command.body || []);
-        break;
-      default:
-        console.warn("Unknown command:", command);
+    if (command.cmd === "move") {
+      // FIX: Handle both "steps" and "value"
+      const steps = command.steps || command.value || 1;
+      await this.moveForward(steps);
+    } else if (command.cmd === "turn") {
+      await this.turn(command.dir);
+    } else if (command.cmd === "repeat") {
+      // FIX: Handle "body", "commands", or "do"
+      const nestedCommands = command.body || command.commands || command.do || [];
+      const times = parseInt(command.times) || 1;
+      
+      for (let i = 0; i < times; i++) {
+        if (!this.isRunning) break;
+        await this.processCommands(nestedCommands);
+      }
     }
   }
 
@@ -65,9 +72,10 @@ export class CommandInterpreter {
     for (let i = 0; i < steps; i++) {
       if (!this.isRunning) break;
 
-      const { row, col, direction } = this.robotState;
-      let newRow = row,
-        newCol = col;
+      const { row, col, direction } = this.snakeState;
+      let newRow = row;
+      let newCol = col;
+
       switch (direction) {
         case "up":
           newRow = row - 1;
@@ -84,66 +92,135 @@ export class CommandInterpreter {
       }
 
       if (this.isValidPosition(newRow, newCol)) {
-        // Start animation, then set new state
-        await window.animateCanvasMove(row, col, newRow, newCol);
-        this.robotState.row = newRow;
-        this.robotState.col = newCol;
-        this.robotState.stepCount++;
-        this.onStateChange({ ...this.robotState });
+        // Move body segments BEFORE moving head
+        this.moveBody();
+
+        // Move snake head
+        this.snakeState.row = newRow;
+        this.snakeState.col = newCol;
+
+        // Check if collected a star
+        this.checkStarCollection(newRow, newCol);
+
+        this.onStateChange({
+          ...this.snakeState,
+          collectedStars: this.collectedStars,
+        });
       } else {
+        console.log("❌ Invalid move - hit wall or obstacle!");
         this.onExecutionComplete(false);
+        this.isRunning = false;
         return;
       }
-      await this.delay(50); // Small pause between steps
+
+      await this.delay(200);
     }
+  }
+
+  // Move body segments to follow head
+  moveBody() {
+    if (!this.snakeState.body || this.snakeState.body.length === 0) return;
+
+    // Move each segment to the position in front of it (tail to head)
+    for (let i = this.snakeState.body.length - 1; i > 0; i--) {
+      this.snakeState.body[i] = { ...this.snakeState.body[i - 1] };
+    }
+
+    // First body segment takes head's OLD position
+    this.snakeState.body[0] = {
+      r: this.snakeState.row,
+      c: this.snakeState.col,
+    };
   }
 
   async turn(direction) {
     const directions = ["up", "right", "down", "left"];
-    const currentIndex = directions.indexOf(this.robotState.direction);
+    const currentIndex = directions.indexOf(this.snakeState.direction);
 
-    let newIndex;
     if (direction === "right") {
-      newIndex = (currentIndex + 1) % 4;
+      this.snakeState.direction = directions[(currentIndex + 1) % 4];
     } else if (direction === "left") {
-      newIndex = (currentIndex - 1 + 4) % 4;
+      this.snakeState.direction = directions[(currentIndex + 3) % 4];
     }
 
-    this.robotState.direction = directions[newIndex];
-    console.log(
-      `🔄 Robot turned ${direction}, now facing ${this.robotState.direction}`
-    );
-    this.onStateChange({ ...this.robotState });
-    await this.delay(200);
+    this.onStateChange({ ...this.snakeState });
   }
 
-  async repeatCommands(times, commands) {
-    console.log(`🔁 Repeating ${times} times:`, commands);
-    for (let i = 0; i < times; i++) {
-      if (!this.isRunning) break;
-      await this.processCommands(commands);
+  checkStarCollection(row, col) {
+    if (!this.challenge.stars) return;
+
+    const starIndex = this.challenge.stars.findIndex(
+      (star) =>
+        star.r === row &&
+        star.c === col &&
+        !this.collectedStars.includes(`${star.r}-${star.c}`)
+    );
+
+    if (starIndex !== -1) {
+      const star = this.challenge.stars[starIndex];
+      const starKey = `${star.r}-${star.c}`;
+      this.collectedStars.push(starKey);
+
+      // Initialize body if needed
+      if (!this.snakeState.body) {
+        this.snakeState.body = [];
+      }
+
+      // Add body segment at tail position
+      if (this.snakeState.body.length > 0) {
+        // Clone last segment position
+        const tail = this.snakeState.body[this.snakeState.body.length - 1];
+        this.snakeState.body.push({ r: tail.r, c: tail.c });
+      } else {
+        // First segment - add at current head position
+        this.snakeState.body.push({
+          r: this.snakeState.row,
+          c: this.snakeState.col,
+        });
+      }
+
+      console.log(
+        `⭐ Star collected! Body segments: ${this.snakeState.body.length}`
+      );
     }
+  }
+
+  checkWinCondition() {
+    if (!this.challenge.stars) {
+      this.onExecutionComplete(false);
+      return;
+    }
+
+    const allStarsCollected =
+      this.collectedStars.length === this.challenge.stars.length;
+
+    console.log(
+      `🏁 Win check: ${this.collectedStars.length}/${this.challenge.stars.length} stars collected`
+    );
+    this.onExecutionComplete(allStarsCollected);
   }
 
   isValidPosition(row, col) {
     if (!this.challenge || !this.challenge.grid) return true;
 
-    // Check grid boundaries
     const inBounds =
       row >= 0 &&
       row < this.challenge.grid.rows &&
       col >= 0 &&
       col < this.challenge.grid.cols;
 
-    if (!inBounds) return false;
+    if (!inBounds) {
+      console.log(`🚫 Out of bounds: (${row}, ${col})`);
+      return false;
+    }
 
-    // Check if position has an obstacle
+    // Check obstacles
     if (this.challenge.obstacles && this.challenge.obstacles.length > 0) {
       const hasObstacle = this.challenge.obstacles.some(
         (obs) => obs.r === row && obs.c === col
       );
       if (hasObstacle) {
-        console.log(`🚫 Obstacle at (${row}, ${col})!`);
+        console.log(`🚫 Hit obstacle at (${row}, ${col})`);
         return false;
       }
     }
@@ -151,27 +228,11 @@ export class CommandInterpreter {
     return true;
   }
 
-  checkWinCondition() {
-    if (!this.challenge || !this.challenge.goal) {
-      this.onExecutionComplete(true);
-      return;
-    }
-
-    const { row, col } = this.robotState;
-    const goal = this.challenge.goal;
-
-    const isWin = row === goal.r && col === goal.c;
-    console.log(
-      `🎯 Win check: Robot at (${row}, ${col}), Goal at (${goal.r}, ${goal.c}), Win: ${isWin}`
-    );
-    this.onExecutionComplete(isWin);
+  delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   stop() {
     this.isRunning = false;
-  }
-
-  delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

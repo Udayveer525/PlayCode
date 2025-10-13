@@ -1,56 +1,67 @@
 {
   "challenges": [
     {
-      "id": "c1_reach_treasure",
-      "title": "Reach the Treasure!",
-      "description": "Help the robot reach the golden treasure! Watch out for obstacles!",
+      "id": "c1_collect_stars",
+      "title": "Collect the Stars!",
+      "description": "Guide the snake to collect all 3 stars! Watch out for walls!",
       "difficulty": "easy",
-      "grid": { "rows": 4, "cols": 4 },
-      "start": { "r": 3, "c": 1, "dir": "up" },
-      "goal": { "r": 0, "c": 1 },
-      "obstacles": [
-        { "r": 1, "c": 0 },
-        { "r": 2, "c": 2 }
+      "grid": { "rows": 5, "cols": 5 },
+      "start": { "r": 4, "c": 0, "dir": "up" },
+      "stars": [
+        { "r": 1, "c": 2 },
+        { "r": 2, "c": 4 },
+        { "r": 3, "c": 1 }
       ],
-      "maxBlocks": 3,
-      "allowedBlocks": ["move", "turn_right", "repeat"]
+      "obstacles": [
+        { "r": 2, "c": 2 },
+        { "r": 3, "c": 3 }
+      ],
+      "maxBlocks": 10,
+      "allowedBlocks": ["move", "turn_right", "turn_left", "repeat"]
     },
     {
-      "id": "c2_zigzag_maze",
-      "title": "Zigzag Maze",
-      "description": "Navigate through the maze! The straight path is blocked!",
+      "id": "c2_snake_maze",
+      "title": "Maze of Stars",
+      "description": "Navigate the maze and collect all 4 stars!",
       "difficulty": "medium",
       "grid": { "rows": 5, "cols": 5 },
       "start": { "r": 4, "c": 0, "dir": "right" },
-      "goal": { "r": 0, "c": 4 },
-      "obstacles": [
-        { "r": 4, "c": 1 },
-        { "r": 4, "c": 2 },
+      "stars": [
+        { "r": 0, "c": 1 },
+        { "r": 1, "c": 4 },
         { "r": 3, "c": 2 },
+        { "r": 4, "c": 4 }
+      ],
+      "obstacles": [
+        { "r": 2, "c": 1 },
         { "r": 2, "c": 2 },
         { "r": 2, "c": 3 },
-        { "r": 1, "c": 3 }
+        { "r": 3, "c": 3 }
       ],
-      "maxBlocks": 8,
+      "maxBlocks": 10,
       "allowedBlocks": ["move", "turn_right", "turn_left", "repeat"]
     },
     {
-      "id": "c3_loop_master",
-      "title": "Loop Master Challenge",
-      "description": "A perfect square path! Use loops to solve it efficiently!",
+      "id": "c3_star_collector",
+      "title": "Star Collector Pro",
+      "description": "Collect all 5 stars efficiently using loops!",
       "difficulty": "hard",
-      "grid": { "rows": 5, "cols": 5 },
-      "start": { "r": 4, "c": 0, "dir": "up" },
-      "goal": { "r": 0, "c": 4 },
-      "obstacles": [
-        { "r": 1, "c": 0 },
-        { "r": 0, "c": 2 },
-        { "r": 2, "c": 1 },
-        { "r": 4, "c": 2 },
-        { "r": 2, "c": 4 }
+      "grid": { "rows": 6, "cols": 6 },
+      "start": { "r": 5, "c": 0, "dir": "up" },
+      "stars": [
+        { "r": 4, "c": 1 },
+        { "r": 3, "c": 2 },
+        { "r": 2, "c": 3 },
+        { "r": 1, "c": 4 },
+        { "r": 0, "c": 5 }
       ],
-      "maxBlocks": 5,
-      "allowedBlocks": ["move", "turn_right", "turn_left", "repeat"]
+      "obstacles": [
+        { "r": 3, "c": 0 },
+        { "r": 2, "c": 1 },
+        { "r": 1, "c": 2 }
+      ],
+      "maxBlocks": 6,
+      "allowedBlocks": ["move", "turn_right", "repeat"]
     }
   ]
 }

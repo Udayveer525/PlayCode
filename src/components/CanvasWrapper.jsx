@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { CommandInterpreter } from "../lib/commandInterpreter";
-import robotImage from "../assets/images/roboFace.png";
-import treasureImg from "../assets/images/treasure.png";
+import snakeHeadImg from "../assets/images/snakeHead.png"; // Your snake head image
+import snakeBodyImg from "../assets/images/snakeBody.png"; // Your snake body segment image
+import starImg from "../assets/images/star.png"; // Star image
 import stoneImg from "../assets/images/stone.png";
 
 export const CanvasWrapper = ({
   challenge,
-  robotState,
+  snakeState,
   commands,
   isRunning,
   onStateChange,
@@ -14,45 +15,25 @@ export const CanvasWrapper = ({
 }) => {
   const canvasRef = useRef(null);
   const commandInterpreter = useRef(null);
-  const animationFrame = useRef(null);
-  const [currentRobotState, setCurrentRobotState] = useState(robotState);
-  const isExecuting = useRef(false); // PREVENT MULTIPLE EXECUTIONS
-  const robotImg = useRef(null);
-  const treasureImage = useRef(null);
+  const [currentSnakeState, setCurrentSnakeState] = useState(snakeState);
+  const isExecuting = useRef(false);
+
+  // Image refs
+  const snakeHeadImage = useRef(null);
+  const snakeBodyImage = useRef(null);
+  const starImage = useRef(null);
   const stoneImage = useRef(null);
 
-  // Animation state for interpolated movement
-  const [anim, setAnim] = useState(null);
-
-  // Smoothly animates the robot from (fromRow, fromCol) to (toRow, toCol)
-  const animateMove = (fromRow, fromCol, toRow, toCol, duration = 180) => {
-    return new Promise((resolve) => {
-      const start = performance.now();
-      function step(now) {
-        const elapsed = now - start;
-        const progress = Math.min(elapsed / duration, 1);
-        setAnim({ fromRow, fromCol, toRow, toCol, progress });
-        if (progress < 1) {
-          requestAnimationFrame(step);
-        } else {
-          setAnim(null);
-          resolve();
-        }
-      }
-      requestAnimationFrame(step);
-    });
-  };
-
+  // Preload all images
   useEffect(() => {
-    window.animateCanvasMove = animateMove;
-    return () => {
-      window.animateCanvasMove = null;
-    };
-  }, []);
+    snakeHeadImage.current = new window.Image();
+    snakeHeadImage.current.src = snakeHeadImg;
 
-  useEffect(() => {
-    treasureImage.current = new window.Image();
-    treasureImage.current.src = treasureImg;
+    snakeBodyImage.current = new window.Image();
+    snakeBodyImage.current.src = snakeBodyImg;
+
+    starImage.current = new window.Image();
+    starImage.current.src = starImg;
 
     stoneImage.current = new window.Image();
     stoneImage.current.src = stoneImg;
@@ -62,34 +43,24 @@ export const CanvasWrapper = ({
   useEffect(() => {
     commandInterpreter.current = new CommandInterpreter(
       (newState) => {
-        setCurrentRobotState(newState);
+        setCurrentSnakeState(newState);
         onStateChange(newState);
       },
       (success) => {
-        isExecuting.current = false; // RESET EXECUTION FLAG
+        isExecuting.current = false;
         onExecutionComplete(success);
       }
     );
-
-    // PRELOAD THE ROBOT IMAGE
-    robotImg.current = new Image();
-    robotImg.current.onload = () => {
-      // Trigger redraw when image is loaded
-      if (currentRobotState && challenge) {
-        drawGrid();
-      }
-    };
-    robotImg.current.src = robotImage;
-  }, []); // EMPTY DEPENDENCY ARRAY
+  }, []);
 
   // Update canvas when state changes
   useEffect(() => {
-    if (currentRobotState && challenge) {
+    if (currentSnakeState && challenge) {
       drawGrid();
     }
-  }, [currentRobotState, challenge]);
+  }, [currentSnakeState, challenge]);
 
-  // FIXED: Execute commands only once per run
+  // Execute commands
   useEffect(() => {
     if (
       isRunning &&
@@ -98,24 +69,23 @@ export const CanvasWrapper = ({
       commandInterpreter.current &&
       !isExecuting.current
     ) {
-      console.log("🚀 SINGLE execution with commands:", commands);
-      isExecuting.current = true; // PREVENT MULTIPLE EXECUTIONS
-
+      console.log("🚀 Executing commands:", commands);
+      isExecuting.current = true;
       commandInterpreter.current.setChallenge(challenge);
-      commandInterpreter.current.setRobotState(currentRobotState);
+      commandInterpreter.current.setSnakeState(currentSnakeState);
       commandInterpreter.current.executeCommands(commands);
     } else if (!isRunning && commandInterpreter.current) {
       commandInterpreter.current.stop();
       isExecuting.current = false;
     }
-  }, [isRunning]); // ONLY DEPEND ON isRunning, NOT commands
+  }, [isRunning]);
 
-  // Update robot state for resets
+  // Update snake state for resets
   useEffect(() => {
-    if (robotState && !isRunning) {
-      setCurrentRobotState(robotState);
+    if (snakeState && !isRunning) {
+      setCurrentSnakeState(snakeState);
     }
-  }, [robotState, isRunning]);
+  }, [snakeState, isRunning]);
 
   const drawGrid = () => {
     const canvas = canvasRef.current;
@@ -131,10 +101,11 @@ export const CanvasWrapper = ({
     const gridSize = challenge.grid || { rows: 5, cols: 5 };
     const cellSize =
       Math.min(canvas.width / gridSize.cols, canvas.height / gridSize.rows) - 4;
+
     const offsetX = (canvas.width - cellSize * gridSize.cols) / 2;
     const offsetY = (canvas.height - cellSize * gridSize.rows) / 2;
 
-    // Draw grid
+    // Draw grid cells (checkerboard)
     for (let row = 0; row < gridSize.rows; row++) {
       for (let col = 0; col < gridSize.cols; col++) {
         const isEvenCell = (row + col) % 2 === 0;
@@ -166,13 +137,12 @@ export const CanvasWrapper = ({
       ctx.stroke();
     }
 
-    // Draw obstacles
+    // Draw obstacles (stones)
     if (challenge.obstacles && challenge.obstacles.length > 0) {
       challenge.obstacles.forEach((obstacle) => {
         const obstX = offsetX + obstacle.c * cellSize;
         const obstY = offsetY + obstacle.r * cellSize;
 
-        // Draw stone image if loaded
         if (stoneImage.current && stoneImage.current.complete) {
           ctx.drawImage(
             stoneImage.current,
@@ -182,66 +152,98 @@ export const CanvasWrapper = ({
             cellSize * 0.9
           );
         } else {
-          // Fallback if image not loaded yet
+          // Fallback
           ctx.fillStyle = "#2d3436";
           ctx.fillRect(obstX + 4, obstY + 4, cellSize - 8, cellSize - 8);
         }
       });
     }
 
-    // Draw goal
-    if (challenge.goal) {
-      const goalX = offsetX + challenge.goal.c * cellSize;
-      const goalY = offsetY + challenge.goal.r * cellSize;
+    // Draw stars (uncollected ones)
+    if (challenge.stars && challenge.stars.length > 0) {
+      challenge.stars.forEach((star) => {
+        const starKey = `${star.r}-${star.c}`;
+        const isCollected =
+          currentSnakeState?.collectedStars?.includes(starKey);
 
-      // Glow/background box for visibility (optional)
-      ctx.save();
-      ctx.shadowColor = "#ffd700";
-      ctx.shadowBlur = 10;
-      ctx.fillStyle = "#fffbe644";
-      ctx.fillRect(
-        goalX + cellSize * 0.1,
-        goalY + cellSize * 0.1,
-        cellSize * 0.8,
-        cellSize * 0.8
-      );
-      ctx.restore();
+        if (!isCollected) {
+          const starX = offsetX + star.c * cellSize;
+          const starY = offsetY + star.r * cellSize;
 
-      // Draw the treasure image
-      if (treasureImage.current && treasureImage.current.complete) {
-        ctx.drawImage(
-          treasureImage.current,
-          goalX + cellSize * 0.1,
-          goalY + cellSize * 0.1,
-          cellSize * 0.8,
-          cellSize * 0.8
-        );
-      }
+          if (starImage.current && starImage.current.complete) {
+            // Draw star image with glow effect
+            ctx.save();
+            ctx.shadowColor = "#ffd700";
+            ctx.shadowBlur = 15;
+            ctx.drawImage(
+              starImage.current,
+              starX + cellSize * 0.1,
+              starY + cellSize * 0.1,
+              cellSize * 0.8,
+              cellSize * 0.8
+            );
+            ctx.restore();
+          } else {
+            // Fallback emoji
+            ctx.save();
+            ctx.shadowColor = "#ffd700";
+            ctx.shadowBlur = 15;
+            ctx.font = `${cellSize * 0.6}px Arial`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("⭐", starX + cellSize / 2, starY + cellSize / 2);
+            ctx.restore();
+          }
+        }
+      });
     }
 
-    // Draw robot
-    // FIXED: Draw robot with proper rotation
-    if (currentRobotState && robotImg.current && robotImg.current.complete) {
-      let drawRow = currentRobotState.row;
-      let drawCol = currentRobotState.col;
-      if (anim) {
-        drawRow = anim.fromRow + (anim.toRow - anim.fromRow) * anim.progress;
-        drawCol = anim.fromCol + (anim.toCol - anim.fromCol) * anim.progress;
-      }
-      const robotX = offsetX + drawCol * cellSize;
-      const robotY = offsetY + drawRow * cellSize;
+    // Draw snake body segments FIRST (so head is on top)
+    if (
+      currentSnakeState &&
+      currentSnakeState.body &&
+      currentSnakeState.body.length > 0
+    ) {
+      currentSnakeState.body.forEach((segment) => {
+        const bodyX = offsetX + segment.c * cellSize;
+        const bodyY = offsetY + segment.r * cellSize;
 
-      const robotSize = cellSize * 0.8;
+        if (snakeBodyImage.current && snakeBodyImage.current.complete) {
+          const bodySize = cellSize * 0.9;
+          ctx.drawImage(
+            snakeBodyImage.current,
+            bodyX + (cellSize - bodySize) / 2, // Center horizontally
+            bodyY + (cellSize - bodySize) / 2, // Center vertically
+            bodySize,
+            bodySize
+          );
+        } else {
+          // Fallback circle
+          ctx.fillStyle = "#00b894";
+          ctx.beginPath();
+          ctx.arc(
+            bodyX + cellSize / 2,
+            bodyY + cellSize / 2,
+            cellSize * 0.3,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+      });
+    }
 
-      // Save the current context
+    // Draw snake head (with rotation)
+    if (currentSnakeState) {
+      const snakeX = offsetX + currentSnakeState.col * cellSize;
+      const snakeY = offsetY + currentSnakeState.row * cellSize;
+
       ctx.save();
-
-      // Move to robot center for rotation
-      ctx.translate(robotX + cellSize / 2, robotY + cellSize / 2);
+      ctx.translate(snakeX + cellSize / 2, snakeY + cellSize / 2);
 
       // Rotate based on direction
       let rotation = 0;
-      switch (currentRobotState.direction) {
+      switch (currentSnakeState.direction) {
         case "up":
           rotation = 0;
           break;
@@ -257,109 +259,69 @@ export const CanvasWrapper = ({
       }
       ctx.rotate(rotation);
 
-      // Draw the robot image centered
-      ctx.drawImage(
-        robotImg.current,
-        -robotSize / 2,
-        -robotSize / 2,
-        robotSize,
-        robotSize
-      );
-
-      // Restore the context
-      ctx.restore();
-
-      if (anim) {
-        requestAnimationFrame(drawGrid);
+      // Draw head image
+      if (snakeHeadImage.current && snakeHeadImage.current.complete) {
+        const headSize = cellSize * 0.9;
+        ctx.drawImage(
+          snakeHeadImage.current,
+          -headSize / 2,
+          -headSize / 2,
+          headSize,
+          headSize
+        );
+      } else {
+        // Fallback emoji
+        ctx.font = `${cellSize * 0.7}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("🐍", 0, 0);
       }
+
+      ctx.restore();
     }
   };
 
   return (
     <div
       style={{
-        width: "100%",
-        height: "100%",
+        background: "rgba(255, 255, 255, 0.95)",
+        borderRadius: "20px",
+        padding: "20px",
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+        border: "3px solid #dfe6e9",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
+        gap: "15px",
       }}
     >
-      <div
-        style={{
-          marginBottom: "12px",
-          textAlign: "center",
-          background: isRunning
-            ? "linear-gradient(135deg, #4ecdc4, #45b7b8)"
-            : "linear-gradient(135deg, #ff6b6b, #ee5a52)",
-          color: "white",
-          padding: "12px 20px",
-          borderRadius: "20px",
-          boxShadow: `0 6px 25px ${
-            isRunning ? "rgba(78, 205, 196, 0.4)" : "rgba(255, 107, 107, 0.3)"
-          }`,
-          transition: "all 0.3s ease",
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: "20px" }}>
-          {isRunning
-            ? "⚡ Robot Moving!"
-            : challenge?.title || "🎮 Loading Adventure..."}
-        </h2>
-        <p style={{ margin: "3px 0 0 0", fontSize: "12px", opacity: 0.9 }}>
-          {isRunning
-            ? "Watch your code execute!"
-            : challenge?.description || "Get ready!"}
-        </p>
-      </div>
-
       <canvas
         ref={canvasRef}
         width={380}
         height={380}
         style={{
-          border: "4px solid #74b9ff",
+          border: "3px solid #74b9ff",
           borderRadius: "15px",
-          background: "white",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+          boxShadow: "0 4px 15px rgba(116, 185, 255, 0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       />
-
-      <div
+      <p
         style={{
-          marginTop: "8px",
+          fontSize: "16px",
+          color: "#636e72",
+          margin: 0,
           textAlign: "center",
-          fontSize: "12px",
-          color: "#2d3436",
-          fontWeight: "bold",
+          fontFamily: "'Comic Sans MS', cursive, sans-serif",
         }}
       >
-        <img
-          src={robotImage}
-          alt="Robot Logo"
-          style={{
-            height: "30px",
-            width: "30px",
-            verticalAlign: "middle",
-            marginBottom: "6px",
-            marginRight: "6px",
-          }}
-        />
-        Robot •{" "}
-        <img
-          src={treasureImg}
-          alt="Treasure icon"
-          style={{
-            height: "30px",
-            width: "30px",
-            verticalAlign: "middle",
-            marginBottom: "6px",
-            marginRight: "6px",
-          }}
-        />
-        Treasure • {isRunning ? "⚡ Executing!" : "⭐ Ready!"}
-      </div>
+        {isRunning
+          ? "🐍 Watch the snake move!"
+          : challenge?.description || "Get ready!"}
+      </p>
     </div>
   );
 };

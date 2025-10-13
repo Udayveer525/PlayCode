@@ -19,21 +19,22 @@ export const Editor = ({ challengeId, onBackToHome }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [commands, setCommands] = useState([]);
   const [blocksUsed, setBlocksUsed] = useState(0);
-  const [robotState, setRobotState] = useState(null);
+  const [snakeState, setSnakeState] = useState(null);
   const [challengeStatus, setChallengeStatus] = useState("waiting");
 
   const currentChallenge = challengeData.challenges.find(
     (c) => c.id === challengeId
   );
 
-  // Initialize robot state
+  // Change snakeState to snakeState
   useEffect(() => {
     if (currentChallenge) {
-      setRobotState({
+      setSnakeState({
         row: currentChallenge.start.r,
         col: currentChallenge.start.c,
         direction: currentChallenge.start.dir,
-        stepCount: 0,
+        collectedStars: [],
+        body: []
       });
     }
   }, [currentChallenge]);
@@ -86,11 +87,11 @@ export const Editor = ({ challengeId, onBackToHome }) => {
 
     // Reset robot to start position
     if (currentChallenge) {
-      setRobotState({
+      setSnakeState({
         row: currentChallenge.start.r,
         col: currentChallenge.start.c,
         direction: currentChallenge.start.dir,
-        stepCount: 0,
+        collectedStars: [],
       });
     }
   };
@@ -151,11 +152,12 @@ export const Editor = ({ challengeId, onBackToHome }) => {
 
     // Reset robot to start position
     if (currentChallenge) {
-      setRobotState({
+      setSnakeState({
         row: currentChallenge.start.r,
         col: currentChallenge.start.c,
         direction: currentChallenge.start.dir,
-        stepCount: 0,
+        collectedStars: [],
+        body: []
       });
     }
 
@@ -239,10 +241,10 @@ export const Editor = ({ challengeId, onBackToHome }) => {
       >
         <CanvasWrapper
           challenge={currentChallenge}
-          robotState={robotState}
+          snakeState={snakeState} // Changed from robotState
           commands={commands}
           isRunning={isRunning}
-          onStateChange={setRobotState}
+          onStateChange={setSnakeState} // Changed from setRobotState
           onExecutionComplete={handleExecutionComplete}
         />
       </div>
@@ -269,6 +271,7 @@ export const Editor = ({ challengeId, onBackToHome }) => {
           status={challengeStatus}
           blocksUsed={blocksUsed}
           maxBlocks={currentChallenge?.maxBlocks}
+          snakeState={snakeState}
         />
       </div>
 

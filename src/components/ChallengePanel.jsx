@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const ChallengePanel = ({ challenge, status, blocksUsed, maxBlocks }) => {
+export const ChallengePanel = ({ challenge, status, blocksUsed, maxBlocks, snakeState }) => {
   const getStatusEmoji = () => {
     switch(status) {
       case 'success': return '🎉';
@@ -92,27 +92,29 @@ export const ChallengePanel = ({ challenge, status, blocksUsed, maxBlocks }) => 
         </div>
       </div>
 
-      {/* Super Compact Status - Just Text Line */}
-      <div style={{
-        textAlign: 'center',
-        marginBottom: '12px',
-        padding: '8px 12px', // Much smaller padding
-        background: getStatusColor() + '15', // Lighter background
-        borderRadius: '10px',
-        border: `2px solid ${getStatusColor()}30` // Lighter border
-      }}>
-        <span style={{ 
-          color: getStatusColor(),
-          fontWeight: 'bold',
-          fontSize: '13px', // Smaller font
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '5px'
+      {/* Stars Counter */}
+        <div style={{
+          background: 'linear-gradient(135deg, #ffeaa7, #fdcb6e)',
+          borderRadius: '15px',
+          padding: '8px',
+          textAlign: 'center',
+          color: '#2d3436',
+          boxShadow: '0 4px 15px rgba(253, 203, 110, 0.3)'
         }}>
-          {getStatusEmoji()} {getStatusMessage()}
-        </span>
-      </div>
+          <p style={{
+            fontSize: '12px',
+            opacity: 0.8
+          }}>
+            ⭐ Stars Collected
+          </p>
+          <p style={{
+            fontSize: '14px',
+            fontWeight: 'bold',
+            margin: 0
+          }}>
+            {snakeState?.collectedStars?.length || 0} / {challenge?.stars?.length || 0}
+          </p>
+        </div>
 
       {/* Compact AI Help Button */}
       <div style={{ textAlign: 'center' }}>
