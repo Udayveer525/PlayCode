@@ -16,7 +16,7 @@
         { "r": 2, "c": 2 },
         { "r": 3, "c": 3 }
       ],
-      "maxBlocks": 10,
+      "maxBlocks": 11,
       "allowedBlocks": ["move", "turn_right", "turn_left", "repeat"]
     },
     {

@@ -24,18 +24,59 @@ export const CanvasWrapper = ({
   const starImage = useRef(null);
   const stoneImage = useRef(null);
 
+  // Track if all images are loaded
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const loadedCount = useRef(0);
+
   // Preload all images
   useEffect(() => {
+    const totalImages = 4;
+    loadedCount.current = 0;
+
+    const checkAllLoaded = () => {
+      loadedCount.current++;
+      console.log(`✅ Image loaded: ${loadedCount.current}/${totalImages}`);
+      
+      if (loadedCount.current === totalImages) {
+        setImagesLoaded(true);
+        console.log('🎨 All images loaded! Ready to render.');
+      }
+    };
+
+    // Snake Head
     snakeHeadImage.current = new window.Image();
+    snakeHeadImage.current.onload = checkAllLoaded;
+    snakeHeadImage.current.onerror = () => {
+      console.warn('⚠️ Snake head image failed to load');
+      checkAllLoaded(); // Still count it so we don't hang
+    };
     snakeHeadImage.current.src = snakeHeadImg;
 
+    // Snake Body
     snakeBodyImage.current = new window.Image();
+    snakeBodyImage.current.onload = checkAllLoaded;
+    snakeBodyImage.current.onerror = () => {
+      console.warn('⚠️ Snake body image failed to load');
+      checkAllLoaded();
+    };
     snakeBodyImage.current.src = snakeBodyImg;
 
+    // Star
     starImage.current = new window.Image();
+    starImage.current.onload = checkAllLoaded;
+    starImage.current.onerror = () => {
+      console.warn('⚠️ Star image failed to load');
+      checkAllLoaded();
+    };
     starImage.current.src = starImg;
 
+    // Stone
     stoneImage.current = new window.Image();
+    stoneImage.current.onload = checkAllLoaded;
+    stoneImage.current.onerror = () => {
+      console.warn('⚠️ Stone image failed to load');
+      checkAllLoaded();
+    };
     stoneImage.current.src = stoneImg;
   }, []);
 
@@ -53,12 +94,12 @@ export const CanvasWrapper = ({
     );
   }, []);
 
-  // Update canvas when state changes
+  // Update canvas when state changes - BUT ONLY IF IMAGES ARE LOADED
   useEffect(() => {
-    if (currentSnakeState && challenge) {
+    if (currentSnakeState && challenge && imagesLoaded) {
       drawGrid();
     }
-  }, [currentSnakeState, challenge]);
+  }, [currentSnakeState, challenge, imagesLoaded]);
 
   // Execute commands
   useEffect(() => {
@@ -143,7 +184,8 @@ export const CanvasWrapper = ({
         const obstX = offsetX + obstacle.c * cellSize;
         const obstY = offsetY + obstacle.r * cellSize;
 
-        if (stoneImage.current && stoneImage.current.complete) {
+        // Images are guaranteed loaded now
+        if (stoneImage.current.complete) {
           ctx.drawImage(
             stoneImage.current,
             obstX + cellSize * 0.05,
@@ -151,10 +193,6 @@ export const CanvasWrapper = ({
             cellSize * 0.9,
             cellSize * 0.9
           );
-        } else {
-          // Fallback
-          ctx.fillStyle = "#2d3436";
-          ctx.fillRect(obstX + 4, obstY + 4, cellSize - 8, cellSize - 8);
         }
       });
     }
@@ -163,15 +201,13 @@ export const CanvasWrapper = ({
     if (challenge.stars && challenge.stars.length > 0) {
       challenge.stars.forEach((star) => {
         const starKey = `${star.r}-${star.c}`;
-        const isCollected =
-          currentSnakeState?.collectedStars?.includes(starKey);
+        const isCollected = currentSnakeState?.collectedStars?.includes(starKey);
 
         if (!isCollected) {
           const starX = offsetX + star.c * cellSize;
           const starY = offsetY + star.r * cellSize;
 
-          if (starImage.current && starImage.current.complete) {
-            // Draw star image with glow effect
+          if (starImage.current.complete) {
             ctx.save();
             ctx.shadowColor = "#ffd700";
             ctx.shadowBlur = 15;
@@ -182,16 +218,6 @@ export const CanvasWrapper = ({
               cellSize * 0.8,
               cellSize * 0.8
             );
-            ctx.restore();
-          } else {
-            // Fallback emoji
-            ctx.save();
-            ctx.shadowColor = "#ffd700";
-            ctx.shadowBlur = 15;
-            ctx.font = `${cellSize * 0.6}px Arial`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText("⭐", starX + cellSize / 2, starY + cellSize / 2);
             ctx.restore();
           }
         }
@@ -208,27 +234,15 @@ export const CanvasWrapper = ({
         const bodyX = offsetX + segment.c * cellSize;
         const bodyY = offsetY + segment.r * cellSize;
 
-        if (snakeBodyImage.current && snakeBodyImage.current.complete) {
+        if (snakeBodyImage.current.complete) {
           const bodySize = cellSize * 0.9;
           ctx.drawImage(
             snakeBodyImage.current,
-            bodyX + (cellSize - bodySize) / 2, // Center horizontally
-            bodyY + (cellSize - bodySize) / 2, // Center vertically
+            bodyX + (cellSize - bodySize) / 2,
+            bodyY + (cellSize - bodySize) / 2,
             bodySize,
             bodySize
           );
-        } else {
-          // Fallback circle
-          ctx.fillStyle = "#00b894";
-          ctx.beginPath();
-          ctx.arc(
-            bodyX + cellSize / 2,
-            bodyY + cellSize / 2,
-            cellSize * 0.3,
-            0,
-            Math.PI * 2
-          );
-          ctx.fill();
         }
       });
     }
@@ -241,7 +255,6 @@ export const CanvasWrapper = ({
       ctx.save();
       ctx.translate(snakeX + cellSize / 2, snakeY + cellSize / 2);
 
-      // Rotate based on direction
       let rotation = 0;
       switch (currentSnakeState.direction) {
         case "up":
@@ -259,8 +272,7 @@ export const CanvasWrapper = ({
       }
       ctx.rotate(rotation);
 
-      // Draw head image
-      if (snakeHeadImage.current && snakeHeadImage.current.complete) {
+      if (snakeHeadImage.current.complete) {
         const headSize = cellSize * 0.9;
         ctx.drawImage(
           snakeHeadImage.current,
@@ -269,12 +281,6 @@ export const CanvasWrapper = ({
           headSize,
           headSize
         );
-      } else {
-        // Fallback emoji
-        ctx.font = `${cellSize * 0.7}px Arial`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("🐍", 0, 0);
       }
 
       ctx.restore();
@@ -292,10 +298,31 @@ export const CanvasWrapper = ({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
         gap: "15px",
       }}
     >
+      {/* Show loading state while images load */}
+      {!imagesLoaded && (
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            fontSize: "24px",
+            color: "#667eea",
+            fontWeight: "bold",
+            textAlign: "center",
+            zIndex: 10,
+          }}
+        >
+          🎨 Loading game assets...<br />
+          <span style={{ fontSize: "16px", opacity: 0.7 }}>
+            {loadedCount.current}/4 loaded
+          </span>
+        </div>
+      )}
+
       <canvas
         ref={canvasRef}
         width={380}
@@ -304,9 +331,8 @@ export const CanvasWrapper = ({
           border: "3px solid #74b9ff",
           borderRadius: "15px",
           boxShadow: "0 4px 15px rgba(116, 185, 255, 0.2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          opacity: imagesLoaded ? 1 : 0.3, // Fade in when loaded
+          transition: "opacity 0.5s ease",
         }}
       />
       <p

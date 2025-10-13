@@ -1,3 +1,5 @@
+import { soundManager } from "../lib/soundManager";
+
 export class CommandInterpreter {
   constructor(onStateChange, onExecutionComplete) {
     this.onStateChange = onStateChange;
@@ -58,9 +60,10 @@ export class CommandInterpreter {
       await this.turn(command.dir);
     } else if (command.cmd === "repeat") {
       // FIX: Handle "body", "commands", or "do"
-      const nestedCommands = command.body || command.commands || command.do || [];
+      const nestedCommands =
+        command.body || command.commands || command.do || [];
       const times = parseInt(command.times) || 1;
-      
+
       for (let i = 0; i < times; i++) {
         if (!this.isRunning) break;
         await this.processCommands(nestedCommands);
@@ -160,6 +163,9 @@ export class CommandInterpreter {
       const star = this.challenge.stars[starIndex];
       const starKey = `${star.r}-${star.c}`;
       this.collectedStars.push(starKey);
+
+      // PLAY STAR COLLECTION SOUND
+      soundManager.playSFX("collectStar");
 
       // Initialize body if needed
       if (!this.snakeState.body) {

@@ -5,6 +5,7 @@ import { ControlPanel } from "./ControlPanel";
 import { ChallengePanel } from "./ChallengePanel";
 import challengeData from "../data/challenges.json";
 import { GameModal } from "./GameModal";
+import { soundManager } from "../lib/soundManager";
 
 export const Editor = ({ challengeId, onBackToHome }) => {
   // Add modal state
@@ -21,6 +22,7 @@ export const Editor = ({ challengeId, onBackToHome }) => {
   const [blocksUsed, setBlocksUsed] = useState(0);
   const [snakeState, setSnakeState] = useState(null);
   const [challengeStatus, setChallengeStatus] = useState("waiting");
+  const [isMuted, setIsMuted] = useState(false);
 
   const currentChallenge = challengeData.challenges.find(
     (c) => c.id === challengeId
@@ -38,6 +40,17 @@ export const Editor = ({ challengeId, onBackToHome }) => {
       });
     }
   }, [currentChallenge]);
+
+  // START MUSIC WHEN EDITOR LOADS
+  useEffect(() => {
+    soundManager.preloadSounds();
+    soundManager.playMusic();
+
+    // Cleanup when leaving editor
+    return () => {
+      soundManager.stopMusic();
+    };
+  }, []);
 
   const handleRunCode = (blocklyCommands) => {
     console.log("📋 Commands to execute:", blocklyCommands);
@@ -112,6 +125,8 @@ export const Editor = ({ challengeId, onBackToHome }) => {
     }
 
     if (success) {
+      soundManager.playSFX('win');
+
       setModalState({
         isOpen: true,
         type: "success",
@@ -121,6 +136,8 @@ export const Editor = ({ challengeId, onBackToHome }) => {
         actionText: "Play Again",
       });
     } else {
+      soundManager.playSFX('fail');
+
       setModalState({
         isOpen: true,
         type: "failure",
@@ -169,6 +186,12 @@ export const Editor = ({ challengeId, onBackToHome }) => {
     console.log("🔄 Challenge Reset Complete!");
   };
 
+  // TOGGLE MUTE FUNCTION
+  const handleToggleMute = () => {
+    const newMuteState = soundManager.toggleMute();
+    setIsMuted(newMuteState);
+  };
+
   return (
     <div
       style={{
@@ -184,6 +207,7 @@ export const Editor = ({ challengeId, onBackToHome }) => {
         boxSizing: "border-box",
       }}
     >
+
       {/* Left Panel */}
       <div
         style={{
@@ -226,6 +250,27 @@ export const Editor = ({ challengeId, onBackToHome }) => {
       </div>
 
       {/* Center */}
+      {/* MUTE BUTTON */}
+        <button
+          onClick={handleToggleMute}
+          style={{
+            position: "absolute",
+            top: "15px",
+            left: "530px",
+            background: "#4ecdc4",
+            color: "white",
+            border: "none",
+            padding: "4px 8px",
+            borderRadius: "10px",
+            fontSize: "20px",
+            fontWeight: "bold",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+          title={isMuted ? "Unmute" : "Mute"}
+        >
+          {isMuted ? "🔇" : "🔊"}
+        </button>
       <div
         style={{
           background: "rgba(255, 255, 255, 0.98)",
