@@ -6,6 +6,7 @@ import { ChallengePanel } from "./ChallengePanel";
 import challengeData from "../data/challenges.json";
 import { GameModal } from "./GameModal";
 import { soundManager } from "../lib/soundManager";
+import { supabase } from "../lib/supabaseClient";
 
 export const Editor = ({ challengeId, onBackToHome }) => {
   // Add modal state
@@ -23,6 +24,7 @@ export const Editor = ({ challengeId, onBackToHome }) => {
   const [snakeState, setSnakeState] = useState(null);
   const [challengeStatus, setChallengeStatus] = useState("waiting");
   const [isMuted, setIsMuted] = useState(false);
+  const [startTime, setStartTime] = useState(null); 
 
   const currentChallenge = challengeData.challenges.find(
     (c) => c.id === challengeId
@@ -91,11 +93,13 @@ export const Editor = ({ challengeId, onBackToHome }) => {
     setBlocksUsed(blocksUsed); // Store for display
     setIsRunning(true);
     setChallengeStatus("running");
+    setStartTime(Date.now()); 
   };
 
   const handleStopExecution = () => {
     setIsRunning(false);
     setChallengeStatus("waiting");
+    setStartTime(null);
     setCommands([]); // CLEAR COMMANDS
 
     // Reset robot to start position
@@ -105,11 +109,12 @@ export const Editor = ({ challengeId, onBackToHome }) => {
         col: currentChallenge.start.c,
         direction: currentChallenge.start.dir,
         collectedStars: [],
+        body: []
       });
     }
   };
 
-  const handleExecutionComplete = (success) => {
+  const handleExecutionComplete = async (success) => {
     setIsRunning(false);
     setChallengeStatus(success ? "success" : "failed");
     setCommands([]); // CLEAR COMMANDS AFTER EXECUTION
@@ -125,7 +130,12 @@ export const Editor = ({ challengeId, onBackToHome }) => {
     }
 
     if (success) {
+      // CALCULATE TIME TAKEN
+      const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
       soundManager.playSFX('win');
+
+      // SAVE TO SUPABASE
+      await saveProgress(blocksUsed, timeTaken);
 
       setModalState({
         isOpen: true,
@@ -165,6 +175,7 @@ export const Editor = ({ challengeId, onBackToHome }) => {
     // Stop any running execution
     setIsRunning(false);
     setChallengeStatus("waiting");
+    setStartTime(null);
     setCommands([]);
 
     // Reset robot to start position
@@ -184,6 +195,51 @@ export const Editor = ({ challengeId, onBackToHome }) => {
     }
 
     console.log("🔄 Challenge Reset Complete!");
+  };
+
+  // NEW FUNCTION: Save progress to Supabase
+  const saveProgress = async (blocksUsed, timeTaken) => {
+    try {
+      // Get current user from localStorage
+      const userJson = localStorage.getItem('codequest_user');
+      if (!userJson) {
+        console.log('⚠️ No user logged in, skipping progress save');
+        return;
+      }
+
+      const user = JSON.parse(userJson);
+      
+      console.log('💾 Saving progress...', {
+        user: user.username,
+        challenge: challengeId,
+        blocks: blocksUsed,
+        time: timeTaken
+      });
+
+      // Insert progress into database
+      const { data, error } = await supabase
+        .from('progress')
+        .upsert([
+          {
+            user_id: user.id,
+            challenge_id: challengeId,
+            blocks_used: blocksUsed,
+            time_taken: timeTaken,
+            completed_at: new Date().toISOString()
+          }
+        ], {
+          onConflict: 'user_id,challenge_id' // Update if already exists
+        })
+        .select();
+
+      if (error) {
+        console.error('❌ Error saving progress:', error);
+      } else {
+        console.log('✅ Progress saved successfully!', data);
+      }
+    } catch (err) {
+      console.error('❌ Error in saveProgress:', err);
+    }
   };
 
   // TOGGLE MUTE FUNCTION

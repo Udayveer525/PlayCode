@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Home } from './components/Home';
 import { Editor } from './components/Editor';
 import { ChallengeList } from './components/ChallengeList';
+import { Leaderboard } from './components/Leaderboard'; // ADD THIS
 import challengeData from './data/challenges.json';
 import './App.css';
 
@@ -34,6 +35,11 @@ function App() {
     setCurrentView('challengeList');
   };
 
+  // ADD THIS - Leaderboard handler
+  const handleViewLeaderboard = () => {
+    setCurrentView('leaderboard');
+  };
+
   const handleSelectChallenge = (challengeId) => {
     setSelectedChallenge(challengeId);
     setCurrentView('editor');
@@ -47,21 +53,28 @@ function App() {
   return (
     <>
       {currentView === 'home' && (
-        <Home 
+        <Home
           onStartAdventure={handleStartAdventure}
-          onViewChallenges={handleViewChallenges}
+          onViewChallenges={handleViewLeaderboard} // CHANGED - now goes to leaderboard
         />
       )}
-      
+
       {currentView === 'challengeList' && (
         <ChallengeList
           onSelectChallenge={handleSelectChallenge}
           onBackToHome={handleBackToHome}
         />
       )}
-      
+
+      {/* ADD THIS - Leaderboard view */}
+      {currentView === 'leaderboard' && (
+        <Leaderboard
+          onBack={handleBackToHome}
+        />
+      )}
+
       {currentView === 'editor' && selectedChallenge && (
-        <Editor 
+        <Editor
           challengeId={selectedChallenge}
           onBackToHome={handleBackToHome}
         />

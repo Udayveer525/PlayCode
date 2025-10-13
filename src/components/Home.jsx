@@ -1,14 +1,95 @@
-import React from 'react';
-import '../styles/Home.css';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import roboImage from '../assets/images/robo.png';
 
 export const Home = ({ onStartAdventure, onViewChallenges }) => {
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [username, setUsername] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check if user already exists in localStorage
+  useEffect(() => {
+    const savedUser = localStorage.getItem('codequest_user');
+    if (savedUser) {
+      setCurrentUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  const handleStartClick = () => {
+    if (!currentUser) {
+      setShowNameInput(true);
+    } else {
+      onStartAdventure();
+    }
+  };
+
+  const handleNameSubmit = async (e) => {
+    e.preventDefault();
+    if (!username.trim()) {
+      alert('Please enter your name!');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Check if user already exists
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username.trim())
+        .single();
+
+      let user;
+
+      if (existingUser) {
+        // User exists, use existing
+        user = existingUser;
+        console.log('✅ Welcome back:', user.username);
+      } else {
+        // Create new user
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert([{ username: username.trim() }])
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating user:', insertError);
+          alert('Error creating user. Please try again!');
+          setIsLoading(false);
+          return;
+        }
+
+        user = newUser;
+        console.log('✅ New user created:', user.username);
+      }
+
+      // Save to localStorage
+      localStorage.setItem('codequest_user', JSON.stringify(user));
+      setCurrentUser(user);
+      setShowNameInput(false);
+      onStartAdventure();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Something went wrong. Please try again!');
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('codequest_user');
+    setCurrentUser(null);
+  };
+
   return (
     <div
       style={{
         height: '100vh',
         width: '100vw',
-        overflow: 'hidden', // Prevent scrolling
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
@@ -18,9 +99,138 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
         padding: '0',
         margin: '0',
         boxSizing: 'border-box',
+        position: 'relative',
       }}
     >
-      {/* Content Container - Centered */}
+      {/* User badge if logged in */}
+      {currentUser && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            background: 'rgba(255, 255, 255, 0.25)',
+            padding: '12px 20px',
+            borderRadius: '25px',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: 'bold',
+          }}
+        >
+          <span>👤 {currentUser.username}</span>
+          <button
+            onClick={handleLogout}
+            style={{
+              background: 'rgba(255, 255, 255, 0.3)',
+              border: 'none',
+              padding: '5px 12px',
+              borderRadius: '12px',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '12px',
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      )}
+
+      {/* Name Input Modal */}
+      {showNameInput && !currentUser && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              padding: '40px',
+              borderRadius: '20px',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              maxWidth: '400px',
+              width: '90%',
+            }}
+          >
+            <h2 style={{ margin: '0 0 10px 0', color: '#667eea' }}>
+              🎮 Welcome to Code Quest!
+            </h2>
+            <p style={{ color: '#666', marginBottom: '20px' }}>
+              Enter your name to start your coding adventure:
+            </p>
+            <form onSubmit={handleNameSubmit}>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Your name..."
+                disabled={isLoading}
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  fontSize: '16px',
+                  border: '2px solid #ddd',
+                  borderRadius: '10px',
+                  marginBottom: '15px',
+                  boxSizing: 'border-box',
+                  fontFamily: "'Comic Sans MS', cursive, sans-serif",
+                }}
+                autoFocus
+              />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '15px',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    opacity: isLoading ? 0.7 : 1,
+                  }}
+                >
+                  {isLoading ? 'Creating...' : 'Start Adventure! 🚀'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNameInput(false)}
+                  disabled={isLoading}
+                  style={{
+                    background: '#ddd',
+                    color: '#666',
+                    border: 'none',
+                    padding: '15px 20px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
       <div
         style={{
           display: 'flex',
@@ -32,7 +242,7 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
           width: '90%',
         }}
       >
-        {/* Left Side - Text Content */}
+        {/* Left Side */}
         <div
           style={{
             flex: '1',
@@ -42,7 +252,6 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
             maxWidth: '500px',
           }}
         >
-          {/* Title */}
           <h1
             style={{
               fontSize: '52px',
@@ -53,10 +262,9 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
               lineHeight: '1.2',
             }}
           >
-            PlayCode
+            🚀 Code Quest
           </h1>
 
-          {/* Subtitle */}
           <p
             style={{
               fontSize: '22px',
@@ -68,7 +276,7 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
             Learn coding through epic adventures! 🌟
           </p>
 
-          {/* Features Grid */}
+          {/* Feature Cards */}
           <div
             style={{
               display: 'grid',
@@ -77,83 +285,42 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
               marginTop: '10px',
             }}
           >
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                borderRadius: '15px',
-                padding: '15px 10px',
-                textAlign: 'center',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <div style={{ fontSize: '32px', marginBottom: '5px' }}>🧩</div>
-              <p
+            {[
+              { icon: '🧩', text: 'Easy blocks!' },
+              { icon: '🎯', text: 'Missions!' },
+              { icon: '✨', text: 'See code alive!' },
+            ].map((feature, i) => (
+              <div
+                key={i}
                 style={{
-                  fontSize: '13px',
-                  color: 'white',
-                  margin: '0',
-                  fontWeight: '600',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '15px',
+                  padding: '15px 10px',
+                  textAlign: 'center',
+                  backdropFilter: 'blur(10px)',
                 }}
               >
-                Easy block coding!
-              </p>
-            </div>
-
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                borderRadius: '15px',
-                padding: '15px 10px',
-                textAlign: 'center',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <div style={{ fontSize: '32px', marginBottom: '5px' }}>🎯</div>
-              <p
-                style={{
-                  fontSize: '13px',
-                  color: 'white',
-                  margin: '0',
-                  fontWeight: '600',
-                }}
-              >
-                Complete missions!
-              </p>
-            </div>
-
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                borderRadius: '15px',
-                padding: '15px 10px',
-                textAlign: 'center',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <div style={{ fontSize: '32px', marginBottom: '5px' }}>✨</div>
-              <p
-                style={{
-                  fontSize: '13px',
-                  color: 'white',
-                  margin: '0',
-                  fontWeight: '600',
-                }}
-              >
-                See code alive!
-              </p>
-            </div>
+                <div style={{ fontSize: '32px', marginBottom: '5px' }}>
+                  {feature.icon}
+                </div>
+                <p
+                  style={{
+                    fontSize: '13px',
+                    color: 'white',
+                    margin: '0',
+                    fontWeight: '600',
+                  }}
+                >
+                  {feature.text}
+                </p>
+              </div>
+            ))}
           </div>
 
           {/* Buttons */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '15px',
-              marginTop: '15px',
-            }}
-          >
+          <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
             <button
-              onClick={onStartAdventure}
+              onClick={handleStartClick}
               style={{
                 flex: '1',
                 background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -168,16 +335,8 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
                 transition: 'all 0.3s ease',
                 fontFamily: "'Comic Sans MS', cursive, sans-serif",
               }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-3px)';
-                e.target.style.boxShadow = '0 8px 25px rgba(245, 87, 108, 0.5)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 6px 20px rgba(245, 87, 108, 0.4)';
-              }}
             >
-              🎮 Start Adventure
+              {currentUser ? '🎮 Continue' : '🎮 Start Adventure'}
             </button>
 
             <button
@@ -196,32 +355,16 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
                 transition: 'all 0.3s ease',
                 fontFamily: "'Comic Sans MS', cursive, sans-serif",
               }}
-              onMouseEnter={(e) => {
-                e.target.style.background = 'rgba(255, 255, 255, 0.35)';
-                e.target.style.transform = 'translateY(-3px)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'rgba(255, 255, 255, 0.25)';
-                e.target.style.transform = 'translateY(0)';
-              }}
             >
-              📋 View Challenges
+              📋 Leaderboard
             </button>
           </div>
         </div>
 
-        {/* Right Side - Robot Image */}
-        <div
-          style={{
-            flex: '0 0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+        {/* Right Side - Robot */}
+        <div style={{ flex: '0 0 auto' }}>
           <div
             style={{
-              position: 'relative',
               width: '350px',
               height: '350px',
               background: 'rgba(255, 255, 255, 0.15)',
@@ -248,29 +391,23 @@ export const Home = ({ onStartAdventure, onViewChallenges }) => {
         </div>
       </div>
 
-      {/* Footer Badge */}
+      {/* Footer */}
       <div
         style={{
           position: 'absolute',
           bottom: '30px',
           fontSize: '14px',
           color: 'rgba(255, 255, 255, 0.7)',
-          textAlign: 'center',
         }}
       >
         Made with 💜 for young coders
       </div>
 
-      {/* Floating Animation Keyframes */}
       <style>
         {`
           @keyframes float {
-            0%, 100% {
-              transform: translateY(0px);
-            }
-            50% {
-              transform: translateY(-20px);
-            }
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
           }
         `}
       </style>

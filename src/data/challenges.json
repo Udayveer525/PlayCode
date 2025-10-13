@@ -38,7 +38,7 @@
         { "r": 2, "c": 3 },
         { "r": 3, "c": 3 }
       ],
-      "maxBlocks": 10,
+      "maxBlocks": 20,
       "allowedBlocks": ["move", "turn_right", "turn_left", "repeat"]
     },
     {
@@ -61,7 +61,7 @@
         { "r": 1, "c": 2 }
       ],
       "maxBlocks": 6,
-      "allowedBlocks": ["move", "turn_right", "repeat"]
+      "allowedBlocks": ["move", "turn_right", "turn_left", "repeat"]
     }
   ]
 }
